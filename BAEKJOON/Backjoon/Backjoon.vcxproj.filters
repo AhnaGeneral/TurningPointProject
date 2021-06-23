@@ -24,5 +24,11 @@
     <ClCompile Include="1712 - 손익분기점.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="1436 - 영화감독 숌.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="2581 - 소수.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
