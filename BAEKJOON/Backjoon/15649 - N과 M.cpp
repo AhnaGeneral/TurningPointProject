@@ -30,9 +30,11 @@ void DFS(int _count, int _N, int _M, int _T)
 			// i = 2  visited[1], arr[0] = 2  DFS(1) -> v 
 			// i = 3  visited [1] 
 			// 
+			visited[i] = true; 
 			arr[_count] = i; 
 			DFS(_count + 1, _N ,_M, _T); 
-			visited[i] = true; 
+			DFS(_count + 1, _N, _M, _T + 1);
+			visited[i] = false;
 		}
 	}
 }
