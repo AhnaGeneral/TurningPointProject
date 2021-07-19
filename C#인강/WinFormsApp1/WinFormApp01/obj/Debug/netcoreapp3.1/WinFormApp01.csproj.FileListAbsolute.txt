@@ -1,0 +1,15 @@
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.exe
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.deps.json
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.runtimeconfig.json
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.runtimeconfig.dev.json
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.dll
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\bin\Debug\netcoreapp3.1\WinFormApp01.pdb
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.csprojAssemblyReference.cache
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.Form1.resources
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.csproj.GenerateResource.cache
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.AssemblyInfoInputs.cache
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.AssemblyInfo.cs
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.csproj.CoreCompileInputs.cache
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.dll
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.pdb
+C:\Users\poplar\Desktop\TurningPointProject\C#인강\WinFormsApp1\WinFormApp01\obj\Debug\netcoreapp3.1\WinFormApp01.genruntimeconfig.cache
