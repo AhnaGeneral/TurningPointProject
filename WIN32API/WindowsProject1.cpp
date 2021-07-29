@@ -17,6 +17,14 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+struct _tagArea
+{
+    bool bStart;
+    POINT ptStart; 
+    POINT ptEnd;
+};
+
+_tagArea g_tArea; 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -142,11 +150,84 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+
+    case WM_KEYDOWN:
+        switch (wParam)
+        {
+        case VK_ESCAPE:
+            DestroyWindow(hWnd); 
+            break; 
+        default:
+            break;
+        }
+        // 마우스 왼쪽버튼을 눌렸을 때 들어온다.
+        // 마우스 위치는 IParam에 들어오게 되는데 16비트를 쪼개서 x, y값이 32비트 변수에 들어오게 된다.
+        // LOWORD, HIWORD 매크로를 이용해서 하위, 상위 16비트의 값을 얻어올 수 있다.
+    case WM_LBUTTONDOWN:
+        if (!g_tArea.bStart)
+        {
+            g_tArea.bStart = true; 
+            // 만약 iParam & 0x12345678 일때 결과는 5678
+            g_tArea.ptStart.x = lParam & 0x0000ffff; 
+            g_tArea.ptStart.y = lParam >> 16; //1234..
+            // 마우스를 클릭할 때 강제로 wm_point메세지를 호출해지는 함수
+            InvalidateRect(hWnd, NULL, TRUE);
+            // 1.윈도우 핸들
+            // 2. 갱신할 영역 
+            // NULL: 전체화면을 대상으로 갱신
+            // 3. True일경우 현재 화면을 지우고 갱신 False 일 경우 현재 화면을 안지우고 갱신
+            
+        }
+        break;
+
+    case WM_MOUSEMOVE:
+        if (g_tArea.bStart)
+        {
+            g_tArea.ptEnd.x = lParam & 0x0000ffff;
+            g_tArea.ptEnd.y = lParam >> 16; //1234..
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        break; 
+    case WM_LBUTTONUP:
+        if (g_tArea.bStart)
+        {
+            g_tArea.bStart = false;
+            g_tArea.ptEnd.x = lParam & 0x0000ffff;
+            g_tArea.ptEnd.y = lParam >> 16; //1234..
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+            // 유니코드 문자열은 " "앞에 L을 붙여서 L" "로 하거나 
+            // TEXT 매크로(unicode, multibytecode인지 구분)를 이용한다. 
+            TextOut(hdc, 50, 50, L"win32", 5);
+            Rectangle(hdc, 100, 100, 200, 200);
+
+            MoveToEx(hdc, 300, 100, NULL); 
+            LineTo(hdc, 400, 150);
+            LineTo(hdc, 500, 100); 
+            //이전의 끝점이 Start가 되니깐 새로운 점을 얻고 싶을 때는 MoveToEx를 실행 해준다.
+            
+            MoveToEx(hdc, 500, 200, NULL);
+            LineTo(hdc, 500, 150);
+
+            Ellipse(hdc, 100, 100, 200, 200);
+
+            if (g_tArea.bStart)
+            {
+                Rectangle(hdc, g_tArea.ptStart.x, g_tArea.ptStart.y, g_tArea.ptEnd.x, g_tArea.ptEnd.y);
+                
+            }
+
+            // 마우스 위치를 출력해보자 
+            TCHAR strMouse[64] = {};
+            // 유니코드 문자열을 만들어 주는 함수 : wsprintf
+            wsprintf(strMouse, TEXT("x: %d, y: %d"), g_tArea.ptStart.x, g_tArea.ptStart.y);
+            // lstrlen : 유니코드 문자열의 길이를 구하는것 
+            TextOut(hdc, 600, 30, strMouse, lstrlen(strMouse));
             EndPaint(hWnd, &ps);
         }
         break;
