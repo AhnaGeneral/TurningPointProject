@@ -10,8 +10,26 @@
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
+HWND g_hwnd;
+bool g_bLoop = true;
+HDC  g_hdc; //무언가를 출력할 때는 HDC가 필요하다.
 
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
+
+// 시간을 구하기 위한 
+LARGE_INTEGER g_tSecond; 
+LARGE_INTEGER g_tTime; 
+float         g_fDeletaTime;
+
+typedef struct _tagRectangle
+{
+    float left, top, right, bottom;
+}RECTANGLE, *PRECTANGLE;
+_tagRectangle g_Player = {200, 200, 300, 300}; //Long타입은 정수임. 
+                                  
+                                      
+                                      // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
+
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -25,6 +43,8 @@ struct _tagArea
 };
 
 _tagArea g_tArea; 
+
+void Run();
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -46,20 +66,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
+    g_hdc = GetDC(g_hwnd); 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSPROJECT1));
 
     MSG msg;
+    QueryPerformanceFrequency(&g_tSecond);
+    QueryPerformanceCounter(&g_tTime); 
 
     // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+    while (g_bLoop)
+    { 
+        //PeekMessage는 메세지가 메세지큐에 없어도 바로 빠져나온다.
+        //true: 메세지가 있을 경우
+        //false: 메세지가 없을 경우
+        //메세지가 없는 시간이 윈도우의 데드타임이다.
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        else //윈도우 데드타임일 경우 이벤트가 발생하지 않은 경우 
+        {
+            Run(); 
+        }
     }
-
+    ReleaseDC(g_hwnd, g_hdc); //루프 끝나면 꼭 릴리즈 DC
     return (int) msg.wParam;
 }
 
@@ -84,7 +115,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWSPROJECT1));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
+    wcex.lpszMenuName = NULL;//MAKEINTRESOURCEW(IDC_WINDOWSPROJECT1);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -112,7 +143,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
-
+   g_hwnd = hWnd;
+   //실제로 윈도우 타이틀이나 메뉴를 포함한 윈도우의 크기를 구해준다
+   RECT rc = { 0, 0, 800, 600 };
+   AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+   //위에서 구해준 크기로 윈도우 클라이언트 영역의 크기를 원하는 크기호 맞춰줘야 한다.
+   SetWindowPos(hWnd, HWND_TOPMOST, 100, 100, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER); 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -231,7 +267,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
         break;
+        // 윈도우를 종료시킬때 들어오는 메세지이다.
     case WM_DESTROY:
+        g_bLoop = false; 
         PostQuitMessage(0);
         break;
     default:
@@ -258,4 +296,66 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+void Run()
+{
+    // DeltaTime을 구한다. Frame과 Frame 사이의 시간을 DeltaTime이라고 부름
+    LARGE_INTEGER tTime; 
+   // QueryPerformanceFrequency(&g_tSecond);
+    QueryPerformanceCounter(&g_tTime);
+    g_fDeletaTime = (tTime.QuadPart - g_tTime.QuadPart) / (float)g_tSecond.QuadPart; 
+    
+    g_tTime = tTime;
+
+    //플레이어 초당 이동속도 : 300
+    float fSpeed = 300 * g_fDeletaTime;
+    
+    if (GetAsyncKeyState('D') & 0x8000)
+    {
+        g_Player.left += 1; 
+        g_Player.right += 1; 
+    }
+    if (GetAsyncKeyState('A') & 0x8000)
+    {
+        g_Player.left -= 1;
+        g_Player.right -= 1;
+    }
+    if (GetAsyncKeyState('W') & 0x8000)
+    {
+        g_Player.top -= 1;
+        g_Player.bottom -= 1;
+    }
+    if (GetAsyncKeyState('S') & 0x8000)
+    {
+        g_Player.top += 1;
+        g_Player.bottom += 1;
+    }
+    
+    RECT rcWindow; 
+    // GetWindowRect(g_hwnd, &rcWindow); 타이틀이랑 모든걸 포함한
+    GetClientRect(g_hwnd, &rcWindow);
+
+    if (g_Player.left < rcWindow.left)
+    {
+        g_Player.right = rcWindow.left + 100;
+        g_Player.left = rcWindow.left ;
+    }
+    else if (g_Player.right > rcWindow.right)
+    {
+        g_Player.right = rcWindow.right;
+        g_Player.left = rcWindow.right - 100;
+    }
+    else if (g_Player.top < rcWindow.top)
+    {
+        g_Player.top = rcWindow.top;
+        g_Player.bottom = rcWindow.top + 100;
+    }
+    else if (g_Player.bottom > rcWindow.bottom )
+    {
+        g_Player.top = rcWindow.bottom -100;
+        g_Player.bottom = rcWindow.bottom;
+    }
+
+    Rectangle(g_hdc, g_Player.left, g_Player.top, g_Player.right, g_Player.bottom);
 }
