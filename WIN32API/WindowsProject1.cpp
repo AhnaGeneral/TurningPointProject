@@ -3,9 +3,28 @@
 
 #include "framework.h"
 #include "WindowsProject1.h"
-
+#include <list>
 #define MAX_LOADSTRING 100
+//==============================================
+typedef struct _tagBullet {
+    RECTANGLE rc; 
+    float fDist; 
+    float fLimitDist;
+}BULLET, *PBULLET;
 
+typedef struct _tagMonster {
+    RECTANGLE rc;
+    float fSpeed; 
+    float fTime; 
+    float fLimitTime; 
+    int iDir;
+}MONSTER, *PMONSTER;
+
+typedef struct _tagRectangle
+{
+    float left, top, right, bottom;
+}RECTANGLE, *PRECTANGLE;
+//==============================================
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
@@ -14,20 +33,16 @@ HWND g_hwnd;
 bool g_bLoop = true;
 HDC  g_hdc; //무언가를 출력할 때는 HDC가 필요하다.
 
-
 // 시간을 구하기 위한 
 LARGE_INTEGER g_tSecond; 
 LARGE_INTEGER g_tTime; 
 float         g_fDeletaTime;
-
-typedef struct _tagRectangle
-{
-    float left, top, right, bottom;
-}RECTANGLE, *PRECTANGLE;
 _tagRectangle g_Player = {200, 200, 300, 300}; //Long타입은 정수임. 
-                                  
+std::list<BULLET> g_PlayerBulletList; //플레이어 총알
+MONSTER g_tMonster; 
+std::list<BULLET> g_MonsterBulletList; 
                                       
-                                      // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
+// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -65,8 +80,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     {
         return FALSE;
     }
-
+    //화면 DC 생성
     g_hdc = GetDC(g_hwnd); 
+
+    g_tMonster.rc.left = 0;
+    g_tMonster.rc.right = 0;
+    g_tMonster.rc.top = 0;
+    g_tMonster.rc.bottom = 0;
+    g_tMonster.fSpeed = 0;
+    g_tMonster.fTime = 0;
+    g_tMonster.iDir = 0; 
+
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWSPROJECT1));
 
     MSG msg;
@@ -237,33 +261,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
+
             // 유니코드 문자열은 " "앞에 L을 붙여서 L" "로 하거나 
             // TEXT 매크로(unicode, multibytecode인지 구분)를 이용한다. 
             TextOut(hdc, 50, 50, L"win32", 5);
-            Rectangle(hdc, 100, 100, 200, 200);
 
-            MoveToEx(hdc, 300, 100, NULL); 
-            LineTo(hdc, 400, 150);
-            LineTo(hdc, 500, 100); 
-            //이전의 끝점이 Start가 되니깐 새로운 점을 얻고 싶을 때는 MoveToEx를 실행 해준다.
-            
-            MoveToEx(hdc, 500, 200, NULL);
-            LineTo(hdc, 500, 150);
+            //Rectangle(hdc, 100, 100, 200, 200);
 
-            Ellipse(hdc, 100, 100, 200, 200);
+            //MoveToEx(hdc, 300, 100, NULL); 
+            //LineTo(hdc, 400, 150);
+            //LineTo(hdc, 500, 100); 
+            ////이전의 끝점이 Start가 되니깐 새로운 점을 얻고 싶을 때는 MoveToEx를 실행 해준다.
+            //
+            //MoveToEx(hdc, 500, 200, NULL);
+            //LineTo(hdc, 500, 150);
 
-            if (g_tArea.bStart)
-            {
-                Rectangle(hdc, g_tArea.ptStart.x, g_tArea.ptStart.y, g_tArea.ptEnd.x, g_tArea.ptEnd.y);
-                
-            }
+            //Ellipse(hdc, 100, 100, 200, 200);
+
+            //if (g_tArea.bStart)
+            //{
+            //    Rectangle(hdc, g_tArea.ptStart.x, g_tArea.ptStart.y, g_tArea.ptEnd.x, g_tArea.ptEnd.y);
+            //    
+            //}
 
             // 마우스 위치를 출력해보자 
-            TCHAR strMouse[64] = {};
-            // 유니코드 문자열을 만들어 주는 함수 : wsprintf
-            wsprintf(strMouse, TEXT("x: %d, y: %d"), g_tArea.ptStart.x, g_tArea.ptStart.y);
-            // lstrlen : 유니코드 문자열의 길이를 구하는것 
-            TextOut(hdc, 600, 30, strMouse, lstrlen(strMouse));
+            //TCHAR strMouse[64] = {};
+            //// 유니코드 문자열을 만들어 주는 함수 : wsprintf
+            //wsprintf(strMouse, TEXT("x: %d, y: %d"), g_tArea.ptStart.x, g_tArea.ptStart.y);
+            //// lstrlen : 유니코드 문자열의 길이를 구하는것 
+            //TextOut(hdc, 600, 30, strMouse, lstrlen(strMouse));
+
             EndPaint(hWnd, &ps);
         }
         break;
@@ -303,9 +330,14 @@ void Run()
     // DeltaTime을 구한다. Frame과 Frame 사이의 시간을 DeltaTime이라고 부름
     LARGE_INTEGER tTime; 
    // QueryPerformanceFrequency(&g_tSecond);
-    QueryPerformanceCounter(&g_tTime);
+    QueryPerformanceCounter(&tTime);
+    float fTimeScale = 0;
     g_fDeletaTime = (tTime.QuadPart - g_tTime.QuadPart) / (float)g_tSecond.QuadPart; 
     
+    fTimeScale += g_fDeletaTime;
+    if (fTimeScale > 1.0f)
+        fTimeScale = 1.0f;
+
     g_tTime = tTime;
 
     //플레이어 초당 이동속도 : 300
@@ -313,23 +345,36 @@ void Run()
     
     if (GetAsyncKeyState('D') & 0x8000)
     {
-        g_Player.left += 1; 
-        g_Player.right += 1; 
+        g_Player.left += fSpeed;
+        g_Player.right += fSpeed;
     }
     if (GetAsyncKeyState('A') & 0x8000)
     {
-        g_Player.left -= 1;
-        g_Player.right -= 1;
+        g_Player.left -= fSpeed;
+        g_Player.right -= fSpeed;
     }
     if (GetAsyncKeyState('W') & 0x8000)
     {
-        g_Player.top -= 1;
-        g_Player.bottom -= 1;
+        g_Player.top -= fSpeed;
+        g_Player.bottom -= fSpeed;
     }
     if (GetAsyncKeyState('S') & 0x8000)
     {
-        g_Player.top += 1;
-        g_Player.bottom += 1;
+        g_Player.top += fSpeed;
+        g_Player.bottom += fSpeed;
+    }
+
+    if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+    {
+        BULLET rcBullet;
+        rcBullet.rc.left = g_Player.right;
+        rcBullet.rc.right = g_Player.right + 50; 
+        rcBullet.rc.top = (g_Player.top + g_Player.bottom) / 2.0f - 25.0f; 
+        rcBullet.rc.bottom = rcBullet.rc.top + 50.0f; 
+        rcBullet.fDist = 0; 
+        rcBullet.fLimitDist = 500; 
+
+        g_PlayerBulletList.push_back(rcBullet);
     }
     
     RECT rcWindow; 
@@ -358,4 +403,36 @@ void Run()
     }
 
     Rectangle(g_hdc, g_Player.left, g_Player.top, g_Player.right, g_Player.bottom);
+
+    std::list<BULLET>::iterator iter;
+    std::list<BULLET>::iterator iterEnd = g_PlayerBulletList.end();
+    fSpeed = 600.0f * g_fDeletaTime;
+    for (iter = g_PlayerBulletList.begin(); iter != iterEnd;)
+    {
+        (*iter).rc.left += fSpeed;
+        (*iter).rc.right += fSpeed;
+        (*iter).fDist += fSpeed;
+        if ((*iter).fDist >= (*iter).fLimitDist)
+        {
+            iter = g_PlayerBulletList.erase(iter);
+            iterEnd = g_PlayerBulletList.end();
+        }
+        else if (800 < (*iter).rc.left)
+        {
+            iter = g_PlayerBulletList.erase(iter);
+            iterEnd = g_PlayerBulletList.end();
+        }
+        else {
+            ++iter;
+
+        }
+        
+    }
+
+    for (iter = g_PlayerBulletList.begin(); iter != iterEnd; ++iter)
+    {
+        Rectangle(g_hdc, (*iter).rc.left, (*iter).rc.top,
+             (*iter).rc.right, (*iter).rc.bottom);
+
+    }
 }
