@@ -1,38 +1,43 @@
-#include <iostream>
-using namespace std; 
+#include<iostream>
+#include <vector>
+using namespace std;
+int A[1000], DP[1000], V[1000];
 
-int A[1'000], DP[1'000], index[1'000];
-
-int main()
+int main(void)
 {
-	int N; 
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	int N;
 	cin >> N;
+
 	for (int i = 0; i < N; ++i)
 	{
 		cin >> A[i];
 	}
-
+	int maxCount = 1;
+	int index = 0;
 	DP[0] = 1;
-	int maxNumber = 1; 
 
-	for (int i = 1; i < N; ++i)
-	{
+	for (int i = 1; i < N; ++i) {
 		DP[i] = 1;
-
 		for (int j = 0; j < i; ++j)
 		{
-			if (A[i] > A[j] && DP[i] < DP[j] + 1)
+			if ((A[j] < A[i]) && (DP[i] < DP[j] + 1))
 			{
-				DP[i] = DP[j] + 1; 
-				if (maxNumber < DP[i])
+				DP[i] = DP[i] + 1;
+				if (maxCount < DP[i])
 				{
-					maxNumber = DP[i];
+					maxCount = DP[i];
+					V[i] = j; 
+					index = i;
 				}
 			}
-
 		}
 	}
 
-	cout << maxNumber;
-	return 0; 
+	cout << maxCount << "\n";
+	DP[index] = 1;
+	return 0;
 }

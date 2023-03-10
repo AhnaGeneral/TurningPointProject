@@ -24,6 +24,6 @@ int main(void)
 	int A, B, C; 
 	cin >> A >> B >> C; 
 
-	cout << power(A, B, C) ;
+	cout << power(A, B, C);
 	return 0; 
 }
