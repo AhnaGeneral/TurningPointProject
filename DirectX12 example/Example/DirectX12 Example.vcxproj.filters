@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\Common\d3dApp.cpp" />
+    <ClCompile Include="..\Common\d3dUtil.cpp" />
+    <ClCompile Include="..\Common\DDSTextureLoader.cpp" />
+    <ClCompile Include="..\Common\GameTimer.cpp" />
+    <ClCompile Include="..\Common\GeometryGenerator.cpp" />
+    <ClCompile Include="..\Common\MathHelper.cpp" />
+    <ClCompile Include="LandAndWaves.cpp" />
+    <ClCompile Include="Waves.cpp" />
+    <ClCompile Include="ShapesApp.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common\d3dApp.h" />
+    <ClInclude Include="..\Common\d3dUtil.h" />
+    <ClInclude Include="..\Common\d3dx12.h" />
+    <ClInclude Include="..\Common\DDSTextureLoader.h" />
+    <ClInclude Include="..\Common\GameTimer.h" />
+    <ClInclude Include="..\Common\GeometryGenerator.h" />
+    <ClInclude Include="..\Common\MathHelper.h" />
+    <ClInclude Include="..\Common\UploadBuffer.h" />
+    <ClInclude Include="Waves.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{900b08d4-dec5-4c20-8d06-67be4dfe9ec8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App">
+      <UniqueIdentifier>{942818c7-9daa-4a1a-afa1-2781a17cc68c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shaders\color.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="lightingS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

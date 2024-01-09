@@ -46,6 +46,8 @@ struct PassConstants
     float FarZ = 0.0f;
     float TotalTime = 0.0f;
     float DeltaTime = 0.0f;
+    DirectX::XMFLOAT4 AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
+    Light Lights[MaxLights];
 };
 
 // CPU에서 한 프레임을 그리기 위한 커맨드들을 기록하기 위한 리소스들을 저장합니다.
@@ -64,6 +66,7 @@ public:
     // GPU가 모든 명령들을 처리하기 전까지 상수 버퍼를 업데이트 할 수 없습니다.
     // 그러므로 매 프레임마다 상수 버퍼가 필요합니다.
     std::unique_ptr<UploadBuffer<PassConstants>> PassCB = nullptr;
+    std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
     std::unique_ptr<UploadBuffer<ObjectConstants>> ObjectCB = nullptr;
 
     // 펜스 값은 현재 펜스 지점까지의 명령들을 표시합니다.
@@ -123,6 +126,7 @@ private:
     void OnKeyboardInput(const GameTimer& gt);
     void UpdateCamera(const GameTimer& gt);
     void UpdateObjectCBs(const GameTimer& gt);
+    void UpdateMaterialCBs(const GameTimer& gt);
     void UpdateMainPassCB(const GameTimer& gt);
 
     void BuildDescriptorHeaps();
@@ -146,6 +150,7 @@ private:
     ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
+    std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
@@ -170,6 +175,9 @@ private:
     float mTheta = 1.5f * XM_PI;
     float mPhi = 0.2f * XM_PI;
     float mRadius = 15.0f;
+
+    float mSunTheta = 1.25f * XM_PI;
+    float mSunPhi = XM_PIDIV4;
 
     POINT mLastMousePos;
 };
@@ -277,6 +285,7 @@ void ShapesApp::Update(const GameTimer& gt)
     }
 
     UpdateObjectCBs(gt);
+    UpdateMaterialCBs(gt);
     UpdateMainPassCB(gt);
 }
 
@@ -441,6 +450,29 @@ void ShapesApp::UpdateObjectCBs(const GameTimer& gt)
     }
 }
 
+void ShapesApp::UpdateMaterialCBs(const GameTimer& gt)
+{
+    auto currentMaterialCB = mCurrFrameResource->MaterialCB.get();
+    for (auto& e : mMaterials)
+    {
+        // 상수 데이터가 변경되었을 때만 상수 버퍼를 업데이트합니다.
+        // 상수 데이터가 변경되었으면 모든 프레임 리소스가 업데이트 되어야 합니다.
+        Material* mat = e.second.get();
+        if (mat->NumFramesDirty > 0)
+        {
+            MaterialConstants matConstants;
+            matConstants.DiffuseAlbedo = mat->DiffuseAlbedo;
+            matConstants.FresnelR0 = mat->FresnelR0;
+            matConstants.Roughness = mat->Roughness;
+
+            currentMaterialCB->CopyData(mat->MatCBIndex, matConstants);
+
+            // 다음 프레임도 업데이트 되어야 합니다.
+            mat->NumFramesDirty--;
+        }
+    }
+}
+
 void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 {
     XMMATRIX view = XMLoadFloat4x4(&mView);
@@ -464,6 +496,12 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
     mMainPassCB.FarZ = 1000.0f;
     mMainPassCB.TotalTime = gt.TotalTime();
     mMainPassCB.DeltaTime = gt.DeltaTime();
+    mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+
+    XMVECTOR lightDir = -MathHelper::SphericalToCartesian(1.0f, mSunTheta, mSunPhi);
+
+    XMStoreFloat3(&mMainPassCB.Lights[0].Direction, lightDir);
+    mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
 
     auto currPassCB = mCurrFrameResource->PassCB.get();
     currPassCB->CopyData(0, mMainPassCB);
@@ -587,7 +625,7 @@ void ShapesApp::BuildShadersAndInputLayout()
     mInputLayout =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+        { "NORMAL",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 }
 
@@ -753,7 +791,7 @@ void ShapesApp::BuildPSOs()
         mShaders["opaquePS"]->GetBufferSize()
     };
     opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    opaquePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+   // opaquePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
     opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
     opaquePsoDesc.SampleMask = UINT_MAX;
@@ -770,7 +808,7 @@ void ShapesApp::BuildPSOs()
     // 불투명 와이어프레임 오브젝트를 위한 PSO 생성
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframePsoDesc = opaquePsoDesc;
-    opaqueWireframePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+   // opaqueWireframePsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaqueWireframePsoDesc, IID_PPV_ARGS(&mPSOs["opaque_wireframe"])));
 }
 
